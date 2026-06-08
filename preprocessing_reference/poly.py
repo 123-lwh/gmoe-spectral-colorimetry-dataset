@@ -9,14 +9,14 @@ import hashlib
 
 BASE_SEED = 42
 
-DATASET_ROOT = r'my_dataset_split\data'
+DATASET_ROOT = r'....\my_dataset_split\data'
 
 TRAIN_FOLDER = os.path.join(DATASET_ROOT, 'train')
 VAL_FOLDER = os.path.join(DATASET_ROOT, 'val')
 TEST_FOLDER = os.path.join(DATASET_ROOT, 'test')
 
 
-CSV_PATH = r'\detection_data.csv'
+CSV_PATH = r'.......\detection_data.csv'
 
 OUTPUT_FOLDER = 'case34'
 PARAMS_FILENAME = 'final_params.txt'
@@ -70,9 +70,7 @@ def calculate_aligned_roi_averages(image, r_tl, r_tr, small_circle_radius, sampl
 
 
     if is_training:
-
         max_sampling_radius = (min(min_w, min_h) / 2.0) * sampling_zone_ratio
-
         num_circles = 1 if max_sampling_radius <= small_circle_radius else rng.randint(min_circles, max_circles)
 
         relative_offsets = [(0, 0)]
@@ -131,7 +129,7 @@ def process_dataset(image_folder, df_metadata, small_radius, dataset_type='train
     is_training = (dataset_type == 'train')
 
     calibration_data = []
-    # 按温度和基础文件名分组
+
     base_file_groups = (
         df_metadata[['temperature', 'base_filename']]
         .drop_duplicates()
@@ -224,12 +222,10 @@ def plot_calibration_curve(train_df, val_df, coeffs, title, output_path):
 
 
 if __name__ == '__main__':
-
     if not os.path.exists(CSV_PATH):
-        exit(f"error '{CSV_PATH}'")
+        exit(f"error'{CSV_PATH}'")
 
     df_source = pd.read_csv(CSV_PATH)
-
 
     try:
         train_filenames = set(os.listdir(TRAIN_FOLDER))
@@ -243,9 +239,9 @@ if __name__ == '__main__':
     df_val_meta = df_source[df_source['filename'].isin(val_filenames)].copy()
     df_test_meta = df_source[df_source['filename'].isin(test_filenames)].copy()
 
+
     for df in [df_train_meta, df_val_meta, df_test_meta]:
         df['base_filename'] = df['filename'].apply(lambda x: x.rsplit('-', 1)[0])
-
 
 
     best_params = {}
@@ -253,18 +249,15 @@ if __name__ == '__main__':
 
 
     for small_radius in SMALL_CIRCLE_RADIUS_OPTIONS:
-        print(f"\n[ R={small_radius}]")
+        print(f"\n[R={small_radius}]")
 
 
-        print("  Train (Random)...")
         train_df = process_dataset(TRAIN_FOLDER, df_train_meta, small_radius, dataset_type='train')
 
-
-        print("   Val  (Fixed 0.2)...")
         val_df = process_dataset(VAL_FOLDER, df_val_meta, small_radius, dataset_type='val_test')
 
         if train_df.empty or val_df.empty:
-
+            print(" error ")
             continue
 
 
@@ -289,21 +282,21 @@ if __name__ == '__main__':
 
 
 
-            # 更新最优参数
             if current_mae < lowest_mae_on_val:
                 lowest_mae_on_val = current_mae
                 best_params = {
                     'degree': degree,
                     'radius': small_radius,
-                    'coeffs': coeffs,  # 直接保存这次拟合的系数，作为最终模型
-                    'train_df': train_df.copy(),  # 用于画图和最终统计
-                    'val_df': val_df.copy()  # 用于画图和最终统计
+                    'coeffs': coeffs,
+                    'train_df': train_df.copy(),
+                    'val_df': val_df.copy()
                 }
 
 
-    if not best_params: exit("error")
+    if not best_params: exit("No valid model found.")
 
-
+    print(f"Optimal parameters -> radius: {best_params['radius']}, degree: {best_params['degree']}")
+    print(f"Corresponding Val MAE: {lowest_mae_on_val:.4f} K")
 
     final_coeffs = best_params['coeffs']
     final_train_df = best_params['train_df']
@@ -316,10 +309,7 @@ if __name__ == '__main__':
         os.path.join(PLOTS_FOLDER, 'best_model_curve.png')
     )
 
-
-
     test_df = process_dataset(TEST_FOLDER, df_test_meta, best_params['radius'], dataset_type='val_test')
-
 
     all_results = []
 
@@ -382,3 +372,4 @@ if __name__ == '__main__':
         for name, metrics in summary_metrics.items():
             f.write(f"{name}: MAE={metrics['MAE']:.4f}, RMSE={metrics['RMSE']:.4f}\n")
 
+    print(f"\nAll completed! Results saved to: {OUTPUT_FOLDER}")
