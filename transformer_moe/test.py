@@ -3,18 +3,18 @@ import numpy as np
 import torch
 from torch.utils.data import TensorDataset, DataLoader
 import os
-from model import MixtureOfExperts  # 导入模型
+from model import MixtureOfExperts  
 
-# --- 配置参数 ---
+
 NUM_RUNS = 10
 BATCH_SIZE = 32
 
-CSV_FILE_PATH = r'moe_test_1.csv'
-BASE_OUTPUT_DIR = r'result'
+CSV_FILE_PATH = r'...moe_test_1.csv'
+BASE_OUTPUT_DIR = r'...result'
 
 WEIGHTS_DIR = os.path.join(BASE_OUTPUT_DIR, 'weights')
 
-# 输出结果路径
+
 BEST_RUN_TEST_RESULTS_CSV = os.path.join(BASE_OUTPUT_DIR, 'results.csv')
 ALL_RUNS_SUMMARY_CSV = os.path.join(BASE_OUTPUT_DIR, 'summary.csv')
 
