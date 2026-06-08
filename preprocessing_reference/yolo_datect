@@ -1,0 +1,120 @@
+import os
+import glob
+import pandas as pd
+from ultralytics import YOLO
+import cv2
+
+MODEL_PATH = '.\best.pt'
+IMAGE_FOLDER = '.\images'
+OUTPUT_DIR = '.\results'
+DETECTED_IMAGE_DIR = os.path.join(OUTPUT_DIR, 'detected_images')
+CSV_PATH = os.path.join(OUTPUT_DIR, 'detection_data.csv')
+
+
+def sort_boxes(boxes):
+    if len(boxes) != 4:
+        return None
+
+    centers = []
+    for box in boxes:
+        x1, y1, x2, y2 = box.xyxy[0]
+        cx = (x1 + x2) / 2
+        cy = (y1 + y2) / 2
+        centers.append({'cx': cx, 'cy': cy, 'box': box})
+
+    centers.sort(key=lambda c: c['cy'])
+    top_two = sorted(centers[:2], key=lambda c: c['cx'])
+    bottom_two = sorted(centers[2:], key=lambda c: c['cx'])
+    sorted_boxes_data = top_two + bottom_two
+
+    return [item['box'] for item in sorted_boxes_data]
+
+
+def main():
+    os.makedirs(DETECTED_IMAGE_DIR, exist_ok=True)
+    print(f"Loading model: {MODEL_PATH}")
+    try:
+        model = YOLO(MODEL_PATH)
+    except Exception as e:
+        print(f"Error: failed to load the model. Please check whether the path {MODEL_PATH} is correct.")
+        print(f"Detailed error: {e}")
+        return
+
+    image_paths = glob.glob(os.path.join(IMAGE_FOLDER, '*.bmp'))
+    if not image_paths:
+        print(f"Warning: no .bmp files were found in folder {IMAGE_FOLDER}.")
+        return
+    print(f"Found {len(image_paths)} images. Start processing...")
+
+    all_rows_data = []
+
+    for image_path in image_paths:
+        filename = os.path.basename(image_path)
+        print(f"  -> Processing: {filename}")
+
+        results = model(image_path, verbose=False)
+        result = results[0]
+
+        try:
+            temperature = float(filename.split('-')[0])
+        except (ValueError, IndexError):
+            print(f"    Warning: failed to extract temperature from filename '{filename}', using 'N/A'.")
+            temperature = 'N/A'
+
+        boxes = result.boxes
+        if len(boxes) != 4:
+            print(f"    Warning: detected {len(boxes)} objects in '{filename}', not 4. This image will be skipped.")
+            continue
+
+        sorted_boxes = sort_boxes(boxes)
+
+        if sorted_boxes is None:
+            continue
+
+        position_names = ['top_left', 'top_right', 'bottom_left', 'bottom_right']
+
+        for i, box in enumerate(sorted_boxes):
+            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy().tolist()
+            cx = (x1 + x2) / 2
+            cy = (y1 + y2) / 2
+
+            row_data = {
+                'filename': filename,
+                'temperature': temperature,
+                'position': position_names[i],
+                'center_x': round(cx, 2),
+                'center_y': round(cy, 2),
+                'bbox_x1': round(x1, 2),
+                'bbox_y1': round(y1, 2),
+                'bbox_x2': round(x2, 2),
+                'bbox_y2': round(y2, 2)
+            }
+            all_rows_data.append(row_data)
+
+        annotated_frame = result.plot()
+
+        output_image_path = os.path.join(DETECTED_IMAGE_DIR, filename)
+        cv2.imwrite(output_image_path, annotated_frame)
+
+    if not all_rows_data:
+        print("Processing completed, but no valid data was generated.")
+        return
+
+    df = pd.DataFrame(all_rows_data)
+
+    column_order = [
+        'filename', 'temperature', 'position',
+        'center_x', 'center_y',
+        'bbox_x1', 'bbox_y1', 'bbox_x2', 'bbox_y2'
+    ]
+    df = df[column_order]
+
+    df.to_csv(CSV_PATH, index=False, encoding='utf-8-sig')
+
+    print("\nProcessing completed!")
+    print(f"All detected images have been saved to: {DETECTED_IMAGE_DIR}")
+    print(f"Detailed data has been saved to CSV file: {CSV_PATH}")
+
+
+if __name__ == '__main__':
+    main()
