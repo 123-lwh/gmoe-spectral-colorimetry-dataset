@@ -4,8 +4,8 @@ from pathlib import Path
 
 
 ORIGINAL_IMAGE_DIR = Path(r"E:\image\img")
-SPLIT_CSV_PATH = Path(r"E:\py_test\project3\my_dataset_split\data\split_info.csv")
-OUTPUT_SPLIT_DIR = Path(r"E:\py_test\shangchaunceshi\case34\data_split_by_csv")
+SPLIT_CSV_PATH = Path(r"...\split_info.csv")
+OUTPUT_SPLIT_DIR = Path(r"...\data_split_by_csv")
 
 OVERWRITE = True
 VALID_SPLITS = {"train", "val", "test"}
