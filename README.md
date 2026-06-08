@@ -7,6 +7,8 @@ The dataset is hosted on Baidu Netdisk:
 - Link: <https://pan.baidu.com/s/1GJvo96EEWsz5-ZWBg9m1ug?pwd=prx2>
 
 ## Repository Structure
+
+```text
 .
 ├── preprocessing_reference/
 │   ├── data/
